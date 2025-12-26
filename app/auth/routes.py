@@ -9,7 +9,7 @@ from flask_jwt_extended import (
 from ..extensions import db
 from ..models import User
 from . import auth_bp
-
+from ..models import ProjectAccess
 from flask_jwt_extended import get_csrf_token, decode_token
 from flask import request
 

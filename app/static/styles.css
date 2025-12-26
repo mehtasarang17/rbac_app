@@ -14,3 +14,9 @@ button, .btn { padding:10px 12px; border-radius:8px; border:1px solid #111; back
 .actions { display:flex; gap:10px; margin: 10px 0 20px; }
 .flash-error { color:#b00020; margin: 8px 0; }
 .flash-success { color:#0b6b2a; margin: 8px 0; }
+.admin-nav { display:flex; gap:12px; margin: 12px 0; }
+.nav-item { padding:8px 12px; border:1px solid #ccc; border-radius:8px; text-decoration:none; }
+.nav-item.active { font-weight:600; border-color:#111; }
+.card { padding:12px; border:1px solid #ddd; border-radius:10px; margin:12px 0; }
+.actions-inline { margin-top:8px; }
+

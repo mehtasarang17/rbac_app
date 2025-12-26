@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Admin Portal</h1>
+
+<!-- NAVBAR -->
+<div class="admin-nav">
+  <a class="nav-item {% if tab == 'projects' %}active{% endif %}"
+     href="{{ url_for('admin.dashboard', tab='projects') }}">Projects</a>
+
+  <a class="nav-item {% if tab == 'users' %}active{% endif %}"
+     href="{{ url_for('admin.dashboard', tab='users') }}">Users</a>
+</div>
+
+<hr>
+
+{% if tab == "projects" %}
+
+  <h2>Projects</h2>
+
+  <!-- ADD / UPLOAD PROJECT -->
+  <div class="card">
+    <h3>Add Project</h3>
+    <form action="{{ url_for('admin.upload_submit') }}" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ jwt_csrf }}">
+
+      <label>Title</label>
+      <input name="title" required>
+
+      <label>Description</label>
+      <input name="description" placeholder="Optional">
+
+      <label>File</label>
+      <input name="file" type="file" required>
+
+      <button type="submit">Upload</button>
+    </form>
+  </div>
+
+  <!-- EDIT PROJECT (inline on same page) -->
+  {% if edit_doc %}
+    <div class="card">
+      <h3>Edit Project</h3>
+      <form action="{{ url_for('admin.edit_doc_submit', doc_id=edit_doc.id) }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ jwt_csrf }}">
+
+        <label>Title</label>
+        <input name="title" value="{{ edit_doc.title }}" required>
+
+        <label>Description</label>
+        <input name="description" value="{{ edit_doc.description or '' }}">
+
+        <button type="submit">Save</button>
+        <a class="btn" href="{{ url_for('admin.dashboard', tab='projects') }}">Cancel</a>
+      </form>
+    </div>
+  {% endif %}
+
+  <!-- LIST PROJECTS -->
+  {% if not docs %}
+    <p>No projects uploaded yet.</p>
+  {% else %}
+    <ul class="list">
+      {% for d in docs %}
+        <li>
+          <strong>{{ d.title }}</strong>
+
+          {% if d.description %}
+            <div class="muted">{{ d.description }}</div>
+          {% endif %}
+
+          <div class="muted">File: {{ d.original_filename }}</div>
+
+          <div class="actions-inline">
+            <a href="{{ url_for('admin.admin_download', doc_id=d.id) }}">Download</a>
+            |
+            <a href="{{ url_for('admin.dashboard', tab='projects', edit=d.id) }}">Edit</a>
+            |
+            <form action="{{ url_for('admin.delete_doc', doc_id=d.id) }}"
+                  method="post"
+                  style="display:inline;">
+              <input type="hidden" name="csrf_token" value="{{ jwt_csrf }}">
+              <button class="danger"
+                      type="submit"
+                      onclick="return confirm('Delete this project?')">
+                Delete
+              </button>
+            </form>
+          </div>
+
+          <!-- ACCESS CONTROL -->
+          <div class="card" style="margin-top: 12px;">
+            <h4 style="margin: 0 0 8px 0;">Project Access</h4>
+
+            <!-- Grant -->
+            <form action="{{ url_for('admin.grant_project_access', doc_id=d.id) }}"
+                  method="post"
+                  style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <input type="hidden" name="csrf_token" value="{{ jwt_csrf }}">
+
+              <select name="user_id" required>
+                <option value="" disabled selected>Select user to grant…</option>
+                {% for u in users %}
+                  {% if u.role == "user" and u.email != default_admin_email %}
+                    {% set allowed_ids = access_map.get(d.id, []) %}
+                    {% if u.id not in allowed_ids %}
+                      <option value="{{ u.id }}">{{ u.email }}</option>
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+              </select>
+
+              <button type="submit">Grant Access</button>
+            </form>
+
+            <!-- Current access list -->
+            <div style="margin-top:10px;">
+              <div class="muted"><strong>Users with access:</strong></div>
+
+              {% set allowed_ids = access_map.get(d.id, []) %}
+              {% if not allowed_ids %}
+                <div class="muted">No users have access yet.</div>
+              {% else %}
+                <ul class="list" style="margin-top:6px;">
+                  {% for u in users %}
+                    {% if u.id in allowed_ids %}
+                      <li style="display:flex; gap:10px; align-items:center;">
+                        <span>{{ u.email }}</span>
+
+                        <form action="{{ url_for('admin.revoke_project_access', doc_id=d.id) }}"
+                              method="post"
+                              style="display:inline;">
+                          <input type="hidden" name="csrf_token" value="{{ jwt_csrf }}">
+                          <input type="hidden" name="user_id" value="{{ u.id }}">
+                          <button class="danger"
+                                  type="submit"
+                                  onclick="return confirm('Revoke access for {{ u.email }}?')">
+                            Revoke
+                          </button>
+                        </form>
+                      </li>
+                    {% endif %}
+                  {% endfor %}
+                </ul>
+              {% endif %}
+            </div>
+          </div>
+
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+{% elif tab == "users" %}
+
+  <h2>Users</h2>
+
+  <!-- ADD USER -->
+  <div class="card">
+    <h3>Add User</h3>
+    <form action="{{ url_for('admin.add_user_submit') }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ jwt_csrf }}">
+
+      <label>Email</label>
+      <input name="email" type="email" required>
+
+      <label>Password</label>
+      <input name="password" type="password" required>
+
+      <button type="submit">Create User</button>
+    </form>
+  </div>
+
+  <!-- LIST USERS -->
+  {% if not users %}
+    <p>No users.</p>
+  {% else %}
+    <ul class="list">
+      {% for u in users %}
+        <li>
+          {{ u.email }} — <span class="pill">{{ u.role }}</span>
+
+          {% if u.email != default_admin_email %}
+            <form action="{{ url_for('admin.delete_user', user_id=u.id) }}"
+                  method="post"
+                  style="display:inline;">
+              <input type="hidden" name="csrf_token" value="{{ jwt_csrf }}">
+              <button type="submit"
+                      class="danger"
+                      onclick="return confirm('Delete this user?')">
+                Delete
+              </button>
+            </form>
+          {% else %}
+            <span class="muted">(Protected Admin)</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+{% endif %}
+
+{% endblock %}

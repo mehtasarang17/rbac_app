@@ -4,9 +4,11 @@ from dotenv import load_dotenv
 from flask_jwt_extended import decode_token
 from .config import Config
 from .extensions import db, migrate, jwt
+from .bootstrap import ensure_default_admin
 
 def create_app():
     # Project root: /.../rbac_app
+    
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     env_path = os.path.join(base_dir, ".env")
     load_dotenv(env_path)
@@ -28,6 +30,8 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    with app.app_context():
+        ensure_default_admin()
 
     @app.context_processor
     def inject_csrf_token():
@@ -38,6 +42,13 @@ def create_app():
             return {"jwt_csrf": decode_token(token).get("csrf")}
         except Exception:
             return {"jwt_csrf": None}
+        
+    @app.context_processor
+    def inject_default_admin():
+        return {
+            "default_admin_email": (os.getenv("DEFAULT_ADMIN_EMAIL") or "").lower()
+        }
+
 
     from .auth.routes import auth_bp
     from .admin.routes import admin_bp

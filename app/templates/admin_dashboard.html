@@ -7,36 +7,75 @@
   <a class="btn" href="{{ url_for('admin.add_user_page') }}">+ Add User</a>
 </div>
 
-<h2>Documents</h2>
-{% if not docs %}
-<p>No documents uploaded yet.</p>
-{% else %}
-<ul class="list">
-  {% for d in docs %}
-  <li>
-    <strong>{{ d.title }}</strong>
-    {% if d.description %}<div class="muted">{{ d.description }}</div>{% endif %}
-    <div class="muted">File: {{ d.original_filename }}</div>
+<hr>
 
-    <a href="{{ url_for('admin.admin_download', doc_id=d.id) }}">Download</a>
-    | <a href="{{ url_for('admin.edit_doc_page', doc_id=d.id) }}">Edit</a>
-    | <form action="{{ url_for('admin.delete_doc', doc_id=d.id) }}" method="post" style="display:inline;">
-      <input type="hidden" name="csrf_token" value="{{ jwt_csrf }}">
-      <button class="danger" type="submit">Delete</button>
-    </form>
-  </li>
-  {% endfor %}
-</ul>
+<h2>Documents</h2>
+
+{% if not docs %}
+  <p>No documents uploaded yet.</p>
+{% else %}
+  <ul class="list">
+    {% for d in docs %}
+      <li>
+        <strong>{{ d.title }}</strong>
+
+        {% if d.description %}
+          <div class="muted">{{ d.description }}</div>
+        {% endif %}
+
+        <div class="muted">File: {{ d.original_filename }}</div>
+
+        <div class="actions-inline">
+          <a href="{{ url_for('admin.admin_download', doc_id=d.id) }}">Download</a>
+          |
+          <a href="{{ url_for('admin.edit_doc_page', doc_id=d.id) }}">Edit</a>
+          |
+          <form action="{{ url_for('admin.delete_doc', doc_id=d.id) }}"
+                method="post"
+                style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ jwt_csrf }}">
+            <button class="danger"
+                    type="submit"
+                    onclick="return confirm('Delete this document?')">
+              Delete
+            </button>
+          </form>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
 {% endif %}
 
+<hr>
+
 <h2>Users</h2>
+
 {% if not users %}
-<p>No users.</p>
+  <p>No users.</p>
 {% else %}
-<ul class="list">
-  {% for u in users %}
-  <li>{{ u.email }} — <span class="pill">{{ u.role }}</span></li>
-  {% endfor %}
-</ul>
+  <ul class="list">
+    {% for u in users %}
+      <li>
+        {{ u.email }}
+        —
+        <span class="pill">{{ u.role }}</span>
+
+        {% if u.email != default_admin_email %}
+          <form action="{{ url_for('admin.delete_user', user_id=u.id) }}"
+                method="post"
+                style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ jwt_csrf }}">
+            <button type="submit"
+                    class="danger"
+                    onclick="return confirm('Delete this user?')">
+              Delete
+            </button>
+          </form>
+        {% else %}
+          <span class="muted">(Protected Admin)</span>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
 {% endif %}
 {% endblock %}

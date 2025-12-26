@@ -101,7 +101,7 @@ def admin_download(doc_id: int):
 @admin_bp.get("/users/new")
 @admin_required
 def add_user_page():
-    return render_template("admin_add_user.html", creating_admin=False)
+    return render_template("admin_add_user.html")
 
 @admin_bp.post("/users/new")
 @admin_required
@@ -117,10 +117,45 @@ def add_user_submit():
         flash("User already exists.", "error")
         return redirect(url_for("admin.add_user_page"))
 
-    user = User(email=email, role="user")
+    requested_role = (request.form.get("role") or "user").strip().lower()
+    if requested_role == "admin":
+        flash("Admin creation is disabled.", "error")
+        return redirect(url_for("admin.add_user_page"))
+
+    role = "user"
+
+    user = User(email=email, role=role)
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
 
     flash("User created.", "success")
     return redirect(url_for("admin.dashboard"))
+
+@admin_bp.post("/users/<int:user_id>/delete")
+@admin_required
+def delete_user(user_id: int):
+    current_admin_id = int(get_jwt_identity())
+
+    user = User.query.get_or_404(user_id)
+
+    fixed_admin_email = (os.getenv("DEFAULT_ADMIN_EMAIL") or "").strip().lower()
+    if fixed_admin_email and user.email.lower() == fixed_admin_email:
+        flash("Default admin cannot be deleted.", "error")
+        return redirect(url_for("admin.dashboard"))
+
+    if user.id == current_admin_id:
+        flash("You cannot delete the account you're currently logged in with.", "error")
+        return redirect(url_for("admin.dashboard"))
+
+    docs_count = Document.query.filter_by(uploaded_by=user.id).count()
+    if docs_count > 0:
+        flash("Cannot delete user: they have uploaded documents. Delete/reassign documents first.", "error")
+        return redirect(url_for("admin.dashboard"))
+
+    db.session.delete(user)
+    db.session.commit()
+
+    flash("User deleted.", "success")
+    return redirect(url_for("admin.dashboard"))
+

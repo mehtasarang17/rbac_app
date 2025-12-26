@@ -92,7 +92,7 @@
           <div class="card" style="margin-top: 12px;">
             <h4 style="margin: 0 0 8px 0;">Project Access</h4>
 
-            <!-- Grant -->
+            <!-- Grant new access -->
             <form action="{{ url_for('admin.grant_project_access', doc_id=d.id) }}"
                   method="post"
                   style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
@@ -100,9 +100,9 @@
 
               <select name="user_id" required>
                 <option value="" disabled selected>Select user to grant…</option>
+                {% set allowed_ids = access_map.get(d.id, []) %}
                 {% for u in users %}
                   {% if u.role == "user" and u.email != default_admin_email %}
-                    {% set allowed_ids = access_map.get(d.id, []) %}
                     {% if u.id not in allowed_ids %}
                       <option value="{{ u.id }}">{{ u.email }}</option>
                     {% endif %}
@@ -110,36 +110,72 @@
                 {% endfor %}
               </select>
 
-              <button type="submit">Grant Access</button>
+              <label style="display:flex; gap:6px; align-items:center;">
+                <input type="checkbox" name="can_edit"> Edit
+              </label>
+
+              <label style="display:flex; gap:6px; align-items:center;">
+                <input type="checkbox" name="can_delete"> Delete
+              </label>
+
+              <button type="submit">Grant</button>
             </form>
 
-            <!-- Current access list -->
+            <!-- Current access list (update permissions + revoke) -->
             <div style="margin-top:10px;">
               <div class="muted"><strong>Users with access:</strong></div>
 
-              {% set allowed_ids = access_map.get(d.id, []) %}
-              {% if not allowed_ids %}
+              {% set rows = access_rows | selectattr("project_id", "equalto", d.id) | list %}
+              {% if not rows %}
                 <div class="muted">No users have access yet.</div>
               {% else %}
                 <ul class="list" style="margin-top:6px;">
-                  {% for u in users %}
-                    {% if u.id in allowed_ids %}
-                      <li style="display:flex; gap:10px; align-items:center;">
-                        <span>{{ u.email }}</span>
+                  {% for a in rows %}
+                    <li style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
 
-                        <form action="{{ url_for('admin.revoke_project_access', doc_id=d.id) }}"
-                              method="post"
-                              style="display:inline;">
-                          <input type="hidden" name="csrf_token" value="{{ jwt_csrf }}">
-                          <input type="hidden" name="user_id" value="{{ u.id }}">
-                          <button class="danger"
-                                  type="submit"
-                                  onclick="return confirm('Revoke access for {{ u.email }}?')">
-                            Revoke
-                          </button>
-                        </form>
-                      </li>
-                    {% endif %}
+                      <!-- user email (no relationships required) -->
+                      <span>
+                        {% for u in users %}
+                          {% if u.id == a.user_id %}
+                            {{ u.email }}
+                          {% endif %}
+                        {% endfor %}
+                      </span>
+
+                      <!-- Update permissions -->
+                      <form action="{{ url_for('admin.update_project_access', doc_id=d.id) }}"
+                            method="post"
+                            style="display:inline-flex; gap:10px; align-items:center;">
+                        <input type="hidden" name="csrf_token" value="{{ jwt_csrf }}">
+                        <input type="hidden" name="user_id" value="{{ a.user_id }}">
+
+                        <label style="display:flex; gap:6px; align-items:center;">
+                          <input type="checkbox" name="can_edit" {% if a.can_edit %}checked{% endif %}>
+                          Edit
+                        </label>
+
+                        <label style="display:flex; gap:6px; align-items:center;">
+                          <input type="checkbox" name="can_delete" {% if a.can_delete %}checked{% endif %}>
+                          Delete
+                        </label>
+
+                        <button type="submit">Update</button>
+                      </form>
+
+                      <!-- Revoke access -->
+                      <form action="{{ url_for('admin.revoke_project_access', doc_id=d.id) }}"
+                            method="post"
+                            style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ jwt_csrf }}">
+                        <input type="hidden" name="user_id" value="{{ a.user_id }}">
+                        <button class="danger"
+                                type="submit"
+                                onclick="return confirm('Revoke access for this user?')">
+                          Revoke
+                        </button>
+                      </form>
+
+                    </li>
                   {% endfor %}
                 </ul>
               {% endif %}
@@ -202,3 +238,4 @@
 {% endif %}
 
 {% endblock %}
+```

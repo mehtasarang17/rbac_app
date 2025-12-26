@@ -1,22 +1,51 @@
 {% extends "base.html" %}
 {% block content %}
+
 <h1>User Portal</h1>
-<p>You can only read/download documents uploaded by admin.</p>
+<p>You can only view documents you have access to.</p>
 
 {% if not docs %}
   <p>No documents available.</p>
 {% else %}
   <ul class="list">
     {% for d in docs %}
+      {% set p = perm_map.get(d.id) %}
+
       <li>
         <strong>{{ d.title }}</strong>
-        {% if d.description %}<div class="muted">{{ d.description }}</div>{% endif %}
+
+        {% if d.description %}
+          <div class="muted">{{ d.description }}</div>
+        {% endif %}
+
         <div class="muted">File: {{ d.original_filename }}</div>
 
-        <a href="{{ url_for('user.download', doc_id=d.id) }}">Download</a>
-        <small>{{ url_for('user.download', doc_id=d.id) }}</small>
+        <div class="actions-inline">
+          <!-- Download: allowed if can_read (already enforced backend) -->
+          <a href="{{ url_for('user.download', doc_id=d.id) }}">Download</a>
+
+          <!-- Edit: only if can_edit -->
+          {% if p and p.can_edit %}
+            | <a href="{{ url_for('user.edit_doc_page', doc_id=d.id) }}">Edit</a>
+          {% endif %}
+
+          <!-- Delete: only if can_delete -->
+          {% if p and p.can_delete %}
+            | <form action="{{ url_for('user.delete_doc', doc_id=d.id) }}"
+                    method="post"
+                    style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ jwt_csrf }}">
+                <button class="danger"
+                        type="submit"
+                        onclick="return confirm('Delete this project?')">
+                  Delete
+                </button>
+              </form>
+          {% endif %}
+        </div>
       </li>
     {% endfor %}
   </ul>
 {% endif %}
+
 {% endblock %}

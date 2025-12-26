@@ -7,7 +7,6 @@ from .extensions import db, migrate, jwt
 from .bootstrap import ensure_default_admin
 
 def create_app():
-    # Project root: /.../rbac_app
     
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     env_path = os.path.join(base_dir, ".env")
@@ -16,11 +15,9 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # ✅ read env AFTER load_dotenv
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "change-me")
 
-    # ✅ ONE source of truth (absolute path)
     app.config["UPLOAD_FOLDER"] = os.path.join(base_dir, "app", "uploads")
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 

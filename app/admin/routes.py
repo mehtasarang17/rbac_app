@@ -19,8 +19,10 @@ def dashboard():
     docs = Document.query.order_by(Document.updated_at.desc()).all()
     users = User.query.order_by(User.created_at.desc()).all()
 
+    access_rows = ProjectAccess.query.all()
+    
     access_map = {}
-    for row in ProjectAccess.query.all():
+    for row in access_rows:
         access_map.setdefault(row.project_id, set()).add(row.user_id)
 
     edit_doc = None
@@ -34,6 +36,7 @@ def dashboard():
         users=users,
         edit_doc=edit_doc,
         access_map=access_map, 
+        access_rows=access_rows,
     )
 
 
@@ -122,29 +125,77 @@ def admin_download(doc_id: int):
 @admin_bp.post("/projects/<int:doc_id>/access/grant")
 @admin_required
 def grant_project_access(doc_id: int):
-    user_id = request.form.get("user_id", "").strip()
-
+    user_id = (request.form.get("user_id") or "").strip()
     if not user_id.isdigit():
         flash("Invalid user.", "error")
         return redirect(url_for("admin.dashboard", tab="projects"))
 
     user_id = int(user_id)
 
-    # ensure project + user exist
     Document.query.get_or_404(doc_id)
     User.query.get_or_404(user_id)
 
-    exists = ProjectAccess.query.filter_by(project_id=doc_id, user_id=user_id).first()
-    if exists:
+    # Permissions from form (checkbox => "on" when checked)
+    can_read = True  # grant implies read
+    can_edit = bool(request.form.get("can_edit"))
+    can_delete = bool(request.form.get("can_delete"))
+
+    row = ProjectAccess.query.filter_by(project_id=doc_id, user_id=user_id).first()
+    if row:
         flash("Access already exists.", "info")
         return redirect(url_for("admin.dashboard", tab="projects"))
 
-    db.session.add(ProjectAccess(project_id=doc_id, user_id=user_id))
+    db.session.add(ProjectAccess(
+        project_id=doc_id,
+        user_id=user_id,
+        can_read=can_read,
+        can_edit=can_edit,
+        can_delete=can_delete,
+    ))
     db.session.commit()
 
     flash("Access granted.", "success")
     return redirect(url_for("admin.dashboard", tab="projects"))
 
+@admin_bp.post("/projects/<int:doc_id>/access/update")
+@admin_required
+def update_project_access(doc_id: int):
+    user_id = (request.form.get("user_id") or "").strip()
+    if not user_id.isdigit():
+        flash("Invalid user.", "error")
+        return redirect(url_for("admin.dashboard", tab="projects"))
+
+    user_id = int(user_id)
+
+    row = ProjectAccess.query.filter_by(project_id=doc_id, user_id=user_id).first()
+    if not row:
+        flash("Access not found.", "error")
+        return redirect(url_for("admin.dashboard", tab="projects"))
+
+    # ✅ always keep read true if access exists
+    row.can_read = True
+    row.can_edit = bool(request.form.get("can_edit"))
+    row.can_delete = bool(request.form.get("can_delete"))
+
+    db.session.commit()
+    flash("Permissions updated.", "success")
+    return redirect(url_for("admin.dashboard", tab="projects"))
+
+@admin_bp.post("/users/<int:user_id>/permissions")
+@admin_required
+def set_user_permissions(user_id: int):
+    user = User.query.get_or_404(user_id)
+
+    fixed_admin_email = (os.getenv("DEFAULT_ADMIN_EMAIL") or "").strip().lower()
+    if fixed_admin_email and user.email.lower() == fixed_admin_email:
+        flash("Default admin permissions cannot be changed here.", "error")
+        return redirect(url_for("admin.dashboard", tab="users"))
+
+    user.can_create_projects = bool(request.form.get("can_create_projects"))
+    db.session.commit()
+
+    flash("User permissions updated.", "success")
+    return redirect(url_for("admin.dashboard", tab="users"))
 
 @admin_bp.post("/projects/<int:doc_id>/access/revoke")
 @admin_required

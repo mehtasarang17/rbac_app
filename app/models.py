@@ -8,11 +8,15 @@ class ProjectAccess(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    can_read = db.Column(db.Boolean, nullable=False, default=True)
+    can_edit = db.Column(db.Boolean, nullable=False, default=False)
+    can_delete = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     __table_args__ = (
         db.UniqueConstraint("project_id", "user_id", name="uq_project_user_access"),
     )
+    
 
 class User(db.Model):
     __tablename__ = "users"
@@ -31,6 +35,7 @@ class User(db.Model):
         return check_password_hash(self.password_hash, password)
     
     project_access = db.relationship("ProjectAccess", backref="user", cascade="all, delete-orphan")
+    can_create_projects = db.Column(db.Boolean, nullable=False, default=False)
 
 
 class Document(db.Model):

@@ -1,0 +1,16 @@
+body { font-family: system-ui, Arial; margin: 0; background:#fafafa; }
+.nav { padding: 12px 16px; background: #111; color: #fff; display:flex; gap:12px; align-items:center; }
+.nav a { color:#fff; text-decoration:none; }
+.container { padding: 18px; max-width: 960px; margin:auto; background:#fff; min-height: calc(100vh - 50px); }
+.form { display:flex; flex-direction:column; gap:10px; max-width: 420px; }
+input, textarea { padding:10px; border:1px solid #ccc; border-radius:8px; }
+button, .btn { padding:10px 12px; border-radius:8px; border:1px solid #111; background:#111; color:#fff; text-decoration:none; width: fit-content;}
+.danger { background:#b00020; border-color:#b00020; }
+.linkbtn { background:transparent; border:none; color:#fff; cursor:pointer; }
+.list { list-style:none; padding-left:0; }
+.list li { padding:12px; border:1px solid #eee; border-radius:10px; margin-bottom:10px; }
+.muted { color:#666; font-size: 0.95rem; }
+.pill { background:#eee; padding:2px 8px; border-radius:999px; }
+.actions { display:flex; gap:10px; margin: 10px 0 20px; }
+.flash-error { color:#b00020; margin: 8px 0; }
+.flash-success { color:#0b6b2a; margin: 8px 0; }

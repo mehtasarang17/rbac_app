@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Admin Dashboard</h1>
+
+<div class="actions">
+  <a class="btn" href="{{ url_for('admin.upload_page') }}">+ Upload Document</a>
+  <a class="btn" href="{{ url_for('admin.add_user_page') }}">+ Add User</a>
+</div>
+
+<h2>Documents</h2>
+{% if not docs %}
+<p>No documents uploaded yet.</p>
+{% else %}
+<ul class="list">
+  {% for d in docs %}
+  <li>
+    <strong>{{ d.title }}</strong>
+    {% if d.description %}<div class="muted">{{ d.description }}</div>{% endif %}
+    <div class="muted">File: {{ d.original_filename }}</div>
+
+    <a href="{{ url_for('admin.admin_download', doc_id=d.id) }}">Download</a>
+    | <a href="{{ url_for('admin.edit_doc_page', doc_id=d.id) }}">Edit</a>
+    | <form action="{{ url_for('admin.delete_doc', doc_id=d.id) }}" method="post" style="display:inline;">
+      <input type="hidden" name="csrf_token" value="{{ jwt_csrf }}">
+      <button class="danger" type="submit">Delete</button>
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<h2>Users</h2>
+{% if not users %}
+<p>No users.</p>
+{% else %}
+<ul class="list">
+  {% for u in users %}
+  <li>{{ u.email }} — <span class="pill">{{ u.role }}</span></li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

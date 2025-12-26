@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: auth_docs_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: auth_docs_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_auth_docs:/var/lib/postgresql/data
+
+volumes:
+  pgdata_auth_docs:

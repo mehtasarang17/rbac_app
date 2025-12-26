@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>User Portal</h1>
+<p>You can only read/download documents uploaded by admin.</p>
+
+{% if not docs %}
+  <p>No documents available.</p>
+{% else %}
+  <ul class="list">
+    {% for d in docs %}
+      <li>
+        <strong>{{ d.title }}</strong>
+        {% if d.description %}<div class="muted">{{ d.description }}</div>{% endif %}
+        <div class="muted">File: {{ d.original_filename }}</div>
+
+        <a href="{{ url_for('user.download', doc_id=d.id) }}">Download</a>
+        <small>{{ url_for('user.download', doc_id=d.id) }}</small>
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}
+{% endblock %}

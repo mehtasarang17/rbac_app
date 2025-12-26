@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Welcome</h1>
+<p>Login with your email & password.</p>
+
+<form action="{{ url_for('auth.login_submit') }}" method="post" class="form">
+  <label>Email</label>
+  <input name="email" type="email" required>
+
+  <label>Password</label>
+  <input name="password" type="password" required>
+
+  <button type="submit">Login</button>
+</form>
+
+<hr>
+
+<p>First time here? If you need to create the first Admin:</p>
+<a class="btn" href="{{ url_for('auth.admin_signup_page') }}">Sign up as Admin</a>
+{% endblock %}
